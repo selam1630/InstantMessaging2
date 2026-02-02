@@ -1,0 +1,82 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../prisma-client"
+}
+
+model User {
+  id           String    @id @map("_id") @db.ObjectId @default(auto())
+  name         String?
+  email        String    @unique
+  phoneNumber  String?     
+  passwordHash String?
+  profileImage String?
+  onlineStatus String?
+  lastSeen     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  messagesSent Message[] @relation("UserMessages")
+  isVerified   Boolean   @default(false)
+  contacts     Contact[] @relation("UserContacts")      // users that this user has added as contact
+  contactOf    Contact[] @relation("ContactOfUser")  
+}
+
+model Conversation {
+  id             String    @id @map("_id") @db.ObjectId @default(auto())
+  type           String     // "private" | "group"
+
+  /// FIXED: participantIds should be plain strings, not ObjectId fields
+  participantIds String[]
+
+  name           String?
+  groupImage     String?
+  adminIds       String[] @default([])
+
+  lastMessageId  String?    @db.ObjectId
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  messages       Message[]  @relation("ConversationMessages")
+}
+
+model Message {
+  id             String        @id @map("_id") @db.ObjectId @default(auto())
+  conversationId String        @db.ObjectId
+  senderId       String        @db.ObjectId
+  content        Json?
+  mediaUrls      String[]
+  timestamp      DateTime      @default(now())
+  status         String
+  receiverId     String?       @db.ObjectId
+
+  deletedFor     String[]      @default([]) 
+  deletedForAll  Boolean       @default(false)
+  
+  replyToId      String?  @db.ObjectId
+  forwardedFrom  String?  @db.ObjectId
+  
+  reactions      Json[]        @default([])
+  
+  conversation  Conversation   @relation(fields: [conversationId], references: [id], name: "ConversationMessages")
+  sender        User           @relation(fields: [senderId], references: [id], name: "UserMessages")
+}
+model OTP {
+  id        String   @id @map("_id") @db.ObjectId @default(auto())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Contact {
+  id        String   @id @map("_id") @db.ObjectId @default(auto())
+  userId    String   @db.ObjectId
+  contactId String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserContacts", fields: [userId], references: [id])
+  contact   User     @relation("ContactOfUser", fields: [contactId], references: [id])
+}
