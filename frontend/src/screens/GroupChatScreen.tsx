@@ -517,7 +517,7 @@ const renderMessage = ({ item }: { item: Message }) => {
 }
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#240046" },
-  header: { padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.2)", backgroundColor: "#240046" },
+  header: { padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.2)", backgroundColor: "" },
   receiverName: { fontSize: 20, fontWeight: "bold", color: "#fff" },
   receiverStatus: { fontSize: 14, color: "rgba(255,255,255,0.7)", marginTop: 2 },
   senderName: { fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 2 },

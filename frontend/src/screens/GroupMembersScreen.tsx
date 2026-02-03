@@ -89,6 +89,14 @@ const MembersListScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
                 <Text style={styles.backText}>Back</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+  onPress={() =>
+    navigation.navigate("GroupProfile", { conversationId: "someId", groupName: "Group Name" })
+  }
+>
+  <Text style={styles.backText}>Set photo</Text>
+</TouchableOpacity>
+
         
       <FlatList
         data={members}
