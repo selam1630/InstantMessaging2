@@ -31,6 +31,7 @@ import AudioRecord from 'react-native-audio-record';
 import AudioRecorderPlayer from "react-native-audio-recorder-player";
 import ActionSheet from "react-native-actionsheet";
 import { Image } from "react-native";
+
 dayjs.extend(relativeTime);
 
 const BACKEND_URL = "http://localhost:4000";
