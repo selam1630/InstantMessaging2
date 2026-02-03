@@ -81,12 +81,29 @@ export default function ChatListScreen({ route }: any) {
     };
   }, [socket, userId]);
 
+  useEffect(() => {
+  if (!socket) return;
+
+  const handler = ({ conversationId, groupImage }: any) => {
+    if (!conversationId) return;
+
+    setConversations(prev =>
+      prev.map(c =>
+        c.isGroup && c.conversationId === conversationId
+          ? { ...c, groupImage }
+          : c
+      )
+    );
+  };
+  socket.on("group_image_updated", handler);
+  return () => {
+    socket.off("group_image_updated", handler);
+  };
+}, [socket]);
   const startChat = async (receiverId: string, conversationId?: string) => {
     try {
-      // If conversation already exists, use it
       let convId = conversationId;
       if (!convId) {
-        // Otherwise, create or get conversation from backend
         const res = await fetch(
           `${BACKEND_URL}/api/conversation/get-or-create?user1=${userId}&user2=${receiverId}`
         );

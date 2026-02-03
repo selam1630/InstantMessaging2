@@ -61,14 +61,10 @@ export const getUserConversations = async (req: Request, res: Response) => {
       where: { userId },
       include: { contact: true },
     });
-
-    // 🔹 collect all other participant ids
     const otherUserIds = conversations
       .filter(c => c.type === "private")
       .map(c => c.participantIds.find(id => id !== userId))
       .filter(Boolean) as string[];
-
-    // 🔹 fetch users once
     const users = await prisma.user.findMany({
       where: { id: { in: otherUserIds } },
       select: {
@@ -221,12 +217,29 @@ export const updateGroupImage = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Not a group conversation" });
     }
 
-    await prisma.conversation.update({
+    // ✅ Update DB
+    const updated = await prisma.conversation.update({
       where: { id: conversationId },
       data: { groupImage: imageUrl },
+      select: {
+        id: true,
+        participantIds: true,
+        groupImage: true,
+      },
     });
 
-    res.json({ success: true, imageUrl });
+    // ✅ SOCKET PAYLOAD
+    const payload = {
+      conversationId: updated.id,
+      groupImage: updated.groupImage,
+    };
+
+    // ✅ Notify all group members
+    (updated.participantIds || []).forEach((pid) => {
+      emitToUser(pid, "group_image_updated", payload);
+    });
+
+    res.json({ success: true, imageUrl: updated.groupImage });
   } catch (err) {
     console.error("Update group image error:", err);
     res.status(500).json({ message: "Failed to update group image" });
