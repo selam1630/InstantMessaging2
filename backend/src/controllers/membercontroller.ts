@@ -8,8 +8,6 @@ import { prisma } from "../config/db";
 export const getUsersByIds = async (req: Request, res: Response) => {
   try {
     const { userIds } = req.body;
-
-    // ✅ Validate input
     if (!Array.isArray(userIds) || userIds.length === 0) {
       return res.status(400).json({
         success: false,

@@ -62,13 +62,15 @@ export default function ChatListScreen({ route }: any) {
         if (prev.find((c) => c.conversationId === payload.conversationId)) return prev;
         return [
           {
-            isGroup: true,
-            conversationId: payload.conversationId,
-            groupName: payload.name || "Group",
-            participantIds: payload.participantIds,
-            lastMessage: null,
-          },
-          ...prev,
+  isGroup: true,
+  conversationId: payload.conversationId,
+  groupName: payload.name || "Group",
+  groupImage: payload.groupImage || null,
+  participantIds: payload.participantIds,
+  lastMessage: null,
+}
+,
+        ...prev,
         ];
       });
     };
@@ -179,9 +181,13 @@ else {
 }}
     >
       <Image
-        source={{ uri: item.participantProfileImage || (item.isGroup ? "https://i.pravatar.cc/150?u=group" : "https://i.pravatar.cc/150") }}
-        style={styles.avatar}
-      />
+  source={{
+    uri: item.isGroup
+      ? item.groupImage || "https://i.pravatar.cc/150?u=group"
+      : item.participantProfileImage || "https://i.pravatar.cc/150",
+  }}
+  style={styles.avatar}
+/>
       <View style={{ flex: 1 }}>
         <Text style={styles.username}>{item.isGroup ? (item.groupName || "Group") : item.participantName}</Text>
         <Text style={styles.email}>{item.lastMessage ? JSON.stringify(item.lastMessage) : ""}</Text>

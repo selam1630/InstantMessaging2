@@ -14,15 +14,20 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
 
-type GroupProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GroupChat'>;
+type GroupProfileScreenNavigationProp =
+  NativeStackNavigationProp<RootStackParamList, 'GroupChat'>;
 
 const GroupProfileScreen: React.FC = () => {
   const navigation = useNavigation<GroupProfileScreenNavigationProp>();
   const route = useRoute();
-  const { conversationId, groupName } = route.params as { conversationId: string; groupName: string };
+
+  const { conversationId, groupName } = route.params as {
+    conversationId: string;
+    groupName: string;
+  };
 
   const [groupImage, setGroupImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -30,14 +35,25 @@ const GroupProfileScreen: React.FC = () => {
   }, []);
 
   const fetchGroup = async () => {
-    setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch(`http://localhost:4000/api/conversation/${conversationId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+
+      const res = await fetch(
+        `http://localhost:4000/api/conversation/${conversationId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
       const data = await res.json();
-      setGroupImage(data.groupProfileImage || null);
+
+      if (data.type !== 'group') {
+        Alert.alert('Error', 'This is not a group conversation');
+        navigation.goBack();
+        return;
+      }
+
+      setGroupImage(data.groupImage || null);
     } catch (err) {
       console.error('Error fetching group:', err);
       Alert.alert('Error', 'Failed to load group info');
@@ -47,17 +63,26 @@ const GroupProfileScreen: React.FC = () => {
   };
 
   const selectImage = () => {
-    launchImageLibrary({ mediaType: 'photo', includeBase64: false }, (res) => {
-      if (res.didCancel) return;
-      if (res.errorMessage) return Alert.alert('Error', res.errorMessage);
-      if (res.assets && res.assets[0]) uploadImage(res.assets[0]);
-    });
+    launchImageLibrary(
+      { mediaType: 'photo', includeBase64: false },
+      (res) => {
+        if (res.didCancel) return;
+        if (res.errorMessage) {
+          Alert.alert('Error', res.errorMessage);
+          return;
+        }
+        if (res.assets && res.assets[0]) {
+          uploadImage(res.assets[0]);
+        }
+      }
+    );
   };
 
   const uploadImage = async (asset: any) => {
     setUploading(true);
     try {
       const token = await AsyncStorage.getItem('token');
+
       const formData = new FormData();
       formData.append('file', {
         uri: asset.uri,
@@ -65,15 +90,25 @@ const GroupProfileScreen: React.FC = () => {
         name: asset.fileName,
       } as any);
 
-      const uploadRes = await fetch('http://localhost:4000/api/files/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
-        body: formData,
-      });
+      const uploadRes = await fetch(
+        'http://localhost:4000/api/files/upload',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
       const uploadData = await uploadRes.json();
 
-      if (uploadRes.ok) await updateGroupImage(uploadData.fileUrl);
-      else Alert.alert('Error', uploadData.message);
+      if (!uploadRes.ok) {
+        Alert.alert('Error', uploadData.message || 'Upload failed');
+        return;
+      }
+
+      await updateGroupImage(uploadData.fileUrl);
     } catch (err) {
       console.error('Upload error:', err);
       Alert.alert('Error', 'Failed to upload image');
@@ -85,25 +120,49 @@ const GroupProfileScreen: React.FC = () => {
   const updateGroupImage = async (imageUrl: string) => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch('http://localhost:4000/api/conversation/update-group-image', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId, imageUrl }),
-      });
+
+      const res = await fetch(
+        'http://localhost:4000/api/conversation/update-group-image',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ conversationId, imageUrl }),
+        }
+      );
+
       const data = await res.json();
-      if (res.ok) setGroupImage(imageUrl);
-      else Alert.alert('Error', data.message);
+
+      if (!res.ok) {
+        Alert.alert('Error', data.message || 'Failed to update image');
+        return;
+      }
+
+      setGroupImage(imageUrl);
     } catch (err) {
       console.error('Update group image error:', err);
       Alert.alert('Error', 'Failed to update group image');
     }
   };
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#7b2cbf" />;
+  if (loading) {
+    return (
+      <ActivityIndicator
+        style={{ flex: 1 }}
+        size="large"
+        color="#7b2cbf"
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+      >
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
@@ -113,24 +172,49 @@ const GroupProfileScreen: React.FC = () => {
             <Image source={{ uri: groupImage }} style={styles.profileImage} />
           ) : (
             <View style={styles.placeholder}>
-              <Text style={styles.placeholderText}>{groupName[0]}</Text>
+              <Text style={styles.placeholderText}>
+                {groupName?.[0]?.toUpperCase()}
+              </Text>
             </View>
           )}
-          {uploading && <ActivityIndicator size="small" style={styles.loader} />}
+
+          {uploading && (
+            <ActivityIndicator size="small" style={styles.loader} />
+          )}
         </TouchableOpacity>
-        <Text style={styles.instruction}>Tap the image to set/change group profile picture</Text>
+
+        <Text style={styles.instruction}>
+          Tap the image to set or change the group profile picture
+        </Text>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#240046', padding: 20 },
-  backButton: { marginBottom: 20 },
-  backText: { fontSize: 18, color: '#007bff' },
-  profileContainer: { alignItems: 'center' },
-  imageContainer: { position: 'relative' },
-  profileImage: { width: 150, height: 150, borderRadius: 75 },
+  container: {
+    flex: 1,
+    backgroundColor: '#240046',
+    padding: 20,
+  },
+  backButton: {
+    marginBottom: 20,
+  },
+  backText: {
+    fontSize: 18,
+    color: '#007bff',
+  },
+  profileContainer: {
+    alignItems: 'center',
+  },
+  imageContainer: {
+    position: 'relative',
+  },
+  profileImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+  },
   placeholder: {
     width: 150,
     height: 150,
@@ -139,9 +223,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  placeholderText: { color: '#fff', fontSize: 40, fontWeight: 'bold' },
-  loader: { position: 'absolute', top: '50%', left: '50%', marginLeft: -10, marginTop: -10 },
-  instruction: { marginTop: 20, fontSize: 16, color: '#fff', textAlign: 'center' },
+  placeholderText: {
+    color: '#fff',
+    fontSize: 40,
+    fontWeight: 'bold',
+  },
+  loader: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginLeft: -10,
+    marginTop: -10,
+  },
+  instruction: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+  },
 });
 
 export default GroupProfileScreen;

@@ -4,12 +4,16 @@ import {
   getOrCreateConversation,
   getUserConversations,
   createGroupConversation,
+  getConversationById,
+  updateGroupImage,
 } from "../controllers/conversationController";
 
 const router = express.Router();
 router.get("/list/:userId", getUserConversations);
 router.get("/get-or-create", getOrCreateConversation);
 router.post("/group", createGroupConversation);
+router.get("/:conversationId", getConversationById);
+router.post("/update-group-image", updateGroupImage);
 router.get("/messages/:conversationId", async (req, res) => {
   const { conversationId } = req.params;
 

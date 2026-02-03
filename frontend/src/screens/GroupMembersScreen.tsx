@@ -10,11 +10,10 @@ import {
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRoute } from "@react-navigation/native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useNavigation } from "@react-navigation/native";
 
-import { RootStackParamList } from "../../App"; 
+import { RootStackParamList } from "../../App";
 
 type MembersListScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -28,11 +27,15 @@ interface Member {
   onlineStatus?: string;
 }
 
-// ------------------ SCREEN ------------------
 const MembersListScreen: React.FC = () => {
   const navigation = useNavigation<MembersListScreenNavigationProp>();
   const route = useRoute();
-  const { participantIds } = route.params as { participantIds: string[] };
+
+  const { participantIds, conversationId, groupName } = route.params as {
+    participantIds: string[];
+    conversationId: string;
+    groupName: string;
+  };
 
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,8 +46,10 @@ const MembersListScreen: React.FC = () => {
 
   const fetchMembers = async () => {
     try {
-      if (!participantIds || participantIds.length === 0) return;
+      if (!participantIds?.length) return;
+
       const token = await AsyncStorage.getItem("token");
+
       const res = await fetch("http://localhost:4000/api/members/by-ids", {
         method: "POST",
         headers: {
@@ -53,6 +58,7 @@ const MembersListScreen: React.FC = () => {
         },
         body: JSON.stringify({ userIds: participantIds }),
       });
+
       const data = await res.json();
 
       if (data.success) {
@@ -76,38 +82,41 @@ const MembersListScreen: React.FC = () => {
     );
   }
 
-  if (members.length === 0) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.emptyText}>No members found</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Text style={styles.backText}>Back</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-  onPress={() =>
-    navigation.navigate("GroupProfile", { conversationId: "someId", groupName: "Group Name" })
-  }
->
-  <Text style={styles.backText}>Set photo</Text>
-</TouchableOpacity>
+      {/* Header */}
+      <TouchableOpacity onPress={() => navigation.goBack()}>
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
 
-        
+      <TouchableOpacity
+        onPress={() =>
+          navigation.navigate("GroupProfile", {
+            conversationId,
+            groupName,
+          })
+        }
+      >
+        <Text style={styles.backText}>Set photo</Text>
+      </TouchableOpacity>
+
+      {/* Members */}
       <FlatList
         data={members}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.memberRow}
-            onPress={() => navigation.navigate("UserProfile", { userId: item.id })}
+            onPress={() =>
+              navigation.navigate("UserProfile", { userId: item.id })
+            }
           >
             <Image
-              source={{ uri: item.profileImage || `https://i.pravatar.cc/150?u=${item.id}` }}
+              source={{
+                uri:
+                  item.profileImage ||
+                  `https://i.pravatar.cc/150?u=${item.id}`,
+              }}
               style={styles.avatar}
             />
             <Text style={styles.name}>{item.name}</Text>
@@ -117,29 +126,24 @@ const MembersListScreen: React.FC = () => {
                 marginLeft: 8,
               }}
             >
-              {item.onlineStatus === "online" ? "● Online" : "● Offline"}
+              ● {item.onlineStatus === "online" ? "Online" : "Offline"}
             </Text>
           </TouchableOpacity>
-          
         )}
-        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: "#ccc" }} />}
+        ItemSeparatorComponent={() => (
+          <View style={{ height: 1, backgroundColor: "#333" }} />
+        )}
       />
     </View>
   );
 };
 
-// ------------------ STYLES ------------------
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#240046" },
   memberRow: { flexDirection: "row", alignItems: "center", padding: 16 },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-  name: { fontSize: 16, fontWeight: "500" },
-  emptyText: { textAlign: "center", marginTop: 50, fontSize: 16, color: "#777" },
-  backText: {
-    fontSize: 18,
-    color: "#007bff",
-    marginBottom: 20,
-  },
+  name: { fontSize: 16, fontWeight: "500", color: "#fff" },
+  backText: { fontSize: 18, color: "#007bff", marginBottom: 12 },
 });
 
 export default MembersListScreen;

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../config/db";
 import { emitToUser } from "../utils/socketManager";
 
+
 export const getOrCreateConversation = async (req: Request, res: Response) => {
   try {
     const { user1, user2 } = req.query;
@@ -82,14 +83,15 @@ export const getUserConversations = async (req: Request, res: Response) => {
 
     const convUsers = conversations.map((conv) => {
       if (conv.type === "group") {
-        return {
-          isGroup: true,
-          conversationId: conv.id,
-          groupName: conv.name || "Group",
-          participantIds: conv.participantIds,
-          lastMessage: conv.messages[0]?.content || null,
-        };
-      }
+  return {
+    isGroup: true,
+    conversationId: conv.id,
+    groupName: conv.name || "Group",
+    groupImage: conv.groupImage || null,
+    participantIds: conv.participantIds,
+    lastMessage: conv.messages[0]?.content || null,
+  };
+}
 
       const otherUserId = conv.participantIds.find(id => id !== userId);
       const user = otherUserId ? userMap.get(otherUserId) : null;
@@ -155,6 +157,7 @@ export const createGroupConversation = async (req: Request, res: Response) => {
       conversationId: conversation.id,
       name: conversation.name,
       participantIds: conversation.participantIds,
+       groupImage: conversation.groupImage || null, 
       type: "group",
     };
     (conversation.participantIds || []).forEach((pid) => {
@@ -164,5 +167,68 @@ export const createGroupConversation = async (req: Request, res: Response) => {
     res.json(conversation);
   } catch (err) {
     res.status(500).json({ message: "Failed to create group" });
+  }
+};
+
+export const getConversationById = async (req: Request, res: Response) => {
+  try {
+    const { conversationId } = req.params;
+
+    if (
+      !conversationId ||
+      typeof conversationId !== "string" ||
+      conversationId.length !== 24
+    ) {
+      return res.status(400).json({ message: "Invalid conversationId" });
+    }
+
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        groupImage: true,
+        participantIds: true,
+        adminIds: true,
+      },
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    res.json(conversation);
+  } catch (err) {
+    console.error("Get conversation error:", err);
+    res.status(500).json({ message: "Failed to fetch conversation" });
+  }
+};
+
+export const updateGroupImage = async (req: Request, res: Response) => {
+  try {
+    const { conversationId, imageUrl } = req.body;
+
+    if (!conversationId || !imageUrl) {
+      return res.status(400).json({ message: "Missing conversationId or imageUrl" });
+    }
+
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (!conversation || conversation.type !== "group") {
+      return res.status(400).json({ message: "Not a group conversation" });
+    }
+
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { groupImage: imageUrl },
+    });
+
+    res.json({ success: true, imageUrl });
+  } catch (err) {
+    console.error("Update group image error:", err);
+    res.status(500).json({ message: "Failed to update group image" });
   }
 };

@@ -365,12 +365,17 @@ const renderMessage = ({ item }: { item: Message }) => {
           <Text style={styles.receiverName}>{groupName}</Text>
          <Text
   style={styles.receiverStatus}
-  onPress={() => navigation.navigate("MembersList", { participantIds })}
+ onPress={() =>
+  navigation.navigate("MembersList", {
+    participantIds,
+    conversationId,
+    groupName,
+  })
+}
 >
   {participantIds.length} members
 </Text>
-
-        </View>
+  </View>
 
         <FlatList
           ref={flatListRef}
