@@ -159,7 +159,7 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#7b2cbf',
     padding: 20,
   },
   backButton: {

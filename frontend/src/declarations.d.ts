@@ -4,7 +4,6 @@ declare module "*.png" {
   export default value;
 }
 
-// For react-native-audio-recorder-player
 declare module 'react-native-audio-recorder-player' {
   interface StartRecordResult {
     result: string;

@@ -256,25 +256,32 @@ const renderMessage = ({ item }: { item: Message }) => {
         isSentByMe ? styles.rowSent : styles.rowReceived,
       ]}
     >
-      {/* Avatar */}
-      {!isSentByMe && (
-        <Image
-          source={{
-            uri:
-              sender?.profileImage ||
-              "https://i.pravatar.cc/150?u=" + item.senderId,
-          }}
-          style={styles.avatar}
-        />
-      )}
+      {/* Avatar + Name (CLICKABLE → UserProfile) */}
+{!isSentByMe && (
+  <TouchableOpacity
+    style={{ flexDirection: "row", alignItems: "center" }}
+    activeOpacity={0.7}
+    onPress={() =>
+      navigation.navigate("UserProfile", {
+        userId: item.senderId,
+      })
+    }
+  >
+    <Image
+      source={{
+        uri:
+          sender?.profileImage ||
+          "https://i.pravatar.cc/150?u=" + item.senderId,
+      }}
+      style={styles.avatar}
+    />
 
-      <View style={{ maxWidth: "90%" }}>
-        {/* Sender name */}
-        {!isSentByMe && (
-          <Text style={styles.senderName}>
-            {sender?.name || "Unknown"}
-          </Text>
-        )}
+    <Text style={styles.senderName}>
+      {sender?.name || "Unknown"}
+    </Text>
+  </TouchableOpacity>
+)}
+
 
         <TouchableOpacity
           onLongPress={() => handleLongPress(item)}
@@ -348,7 +355,6 @@ const renderMessage = ({ item }: { item: Message }) => {
           </View>
         </TouchableOpacity>
       </View>
-    </View>
   );
 };
 

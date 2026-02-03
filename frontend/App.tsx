@@ -12,6 +12,7 @@ import GroupChatScreen from "./src/screens/GroupChatScreen";
 import CreateGroupScreen from "./src/screens/CreateGroupScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import { SocketProvider } from "./src/context/SocketContext";
+import UserProfileScreen from "./src/screens/UserProfileScreen";
 export type RootStackParamList = {
   Landing: undefined;
   SignIn: undefined;
@@ -22,6 +23,8 @@ export type RootStackParamList = {
   GroupChat: { conversationId: string; userId: string; groupName: string; participantIds: string[] };
   CreateGroup: { userId: string };
   Profile: { userId: string };
+  UserProfile: { userId: string };
+
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -39,6 +42,7 @@ const App: React.FC = () => {
           <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
           <Stack.Screen name="ChatList" component={ChatListScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="UserProfile" component={UserProfileScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SocketProvider>
