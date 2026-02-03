@@ -31,6 +31,9 @@ import AudioRecord from 'react-native-audio-record';
 import AudioRecorderPlayer from "react-native-audio-recorder-player";
 import ActionSheet from "react-native-actionsheet";
 import { Image } from "react-native";
+import { Clipboard } from "react-native";
+
+
 dayjs.extend(relativeTime);
 
 const BACKEND_URL = "http://localhost:4000";
@@ -83,6 +86,17 @@ export default function ChatScreen({ route }: ChatScreenProps) {
   const messageActionSheetRef = useRef<ActionSheet>(null);
   const [messageActionOptions, setMessageActionOptions] = useState<string[]>([]);
   const [messageActionCancelIndex, setMessageActionCancelIndex] = useState<number>(0);
+  const copyToClipboard = (text: string) => {
+  try {
+    import("react-native").then(({ Clipboard }) => {
+      Clipboard.setString(text);
+      Alert.alert("Copied", "Message copied to clipboard!");
+    });
+  } catch (err) {
+    console.error("Copy failed", err);
+    Alert.alert("Error", "Failed to copy message");
+  }
+};
 
   useEffect(() => {
     if (messages.length > 0) flatListRef.current?.scrollToEnd({ animated: true });
@@ -235,6 +249,7 @@ export default function ChatScreen({ route }: ChatScreenProps) {
     options.push("React ❤️");
     options.push("Reply");
     options.push("Forward");
+    options.push("copy");
     options.push("Delete for me");
     if (isSentByMe) options.push("Delete for everyone");
     options.push("Cancel");
@@ -588,12 +603,21 @@ export default function ChatScreen({ route }: ChatScreenProps) {
                   }
                 },
               });
-            } else if (option === "Delete for me") {
+            } 
+          else if (option === "Copy") {
+  if (typeof actionMessage.content === "string") {
+    copyToClipboard(actionMessage.content);
+  } else {
+    const fileContent = (actionMessage.content as FileMessageContent).url || 
+                        (actionMessage.content as FileMessageContent).name || '';
+    copyToClipboard(fileContent);
+  }
+}
+else if (option === "Delete for me") {
               deleteMessage(actionMessage.id!, false);
             } else if (option === "Delete for everyone") {
               deleteMessage(actionMessage.id!, true);
             }
-
             setActionMessage(null);
           }}
         />
