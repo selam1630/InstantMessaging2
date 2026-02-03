@@ -363,7 +363,13 @@ const renderMessage = ({ item }: { item: Message }) => {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.receiverName}>{groupName}</Text>
-          <Text style={styles.receiverStatus}>{participantIds.length} members</Text>
+         <Text
+  style={styles.receiverStatus}
+  onPress={() => navigation.navigate("MembersList", { participantIds })}
+>
+  {participantIds.length} members
+</Text>
+
         </View>
 
         <FlatList

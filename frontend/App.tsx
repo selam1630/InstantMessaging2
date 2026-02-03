@@ -13,6 +13,7 @@ import CreateGroupScreen from "./src/screens/CreateGroupScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import { SocketProvider } from "./src/context/SocketContext";
 import UserProfileScreen from "./src/screens/UserProfileScreen";
+import MembersListScreen from "./src/screens/GroupMembersScreen";
 export type RootStackParamList = {
   Landing: undefined;
   SignIn: undefined;
@@ -24,6 +25,7 @@ export type RootStackParamList = {
   CreateGroup: { userId: string };
   Profile: { userId: string };
   UserProfile: { userId: string };
+  MembersList: { userIds: string[] };
 
 };
 
@@ -43,6 +45,7 @@ const App: React.FC = () => {
           <Stack.Screen name="ChatList" component={ChatListScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+          <Stack.Screen name="MembersList" component={MembersListScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SocketProvider>
