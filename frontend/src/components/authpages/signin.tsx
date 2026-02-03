@@ -126,7 +126,7 @@ export default function SignInScreen() {
 
       <TouchableOpacity style={styles.button} onPress={handleSignIn}>
         {loading ? (
-          <ActivityIndicator color="#7b2cbf" />
+          <ActivityIndicator color="#240046'" />
         ) : (
           <Text style={styles.buttonText}>Sign In</Text>
         )}
@@ -155,7 +155,7 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#7b2cbf",
+    backgroundColor: "#240046",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,

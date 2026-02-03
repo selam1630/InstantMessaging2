@@ -247,7 +247,7 @@ else {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#7b2cbf",
+    backgroundColor: "#240046",
     padding: 16,
     paddingTop: 40,
   },
@@ -264,9 +264,9 @@ const styles = StyleSheet.create({
   },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
   createGroupButton: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: 8 },
-  createGroupText: { color: '#7b2cbf', fontWeight: 'bold' },
+  createGroupText: { color: '#240046', fontWeight: 'bold' },
   profileButton: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: 8 },
-  profileText: { color: '#7b2cbf', fontWeight: 'bold' },
+  profileText: { color: '', fontWeight: 'bold' },
   logoutButton: {
     backgroundColor: "#fff",
     paddingHorizontal: 14,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   logoutText: {
-    color: "#7b2cbf",
+    color: "#240046'",
     fontWeight: "bold",
     fontSize: 14,
   },
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   loader: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "#7b2cbf",
+    backgroundColor: "#240046'",
   },
   empty: {
     textAlign: "center",

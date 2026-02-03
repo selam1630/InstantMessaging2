@@ -149,7 +149,7 @@ navigation.navigate("VerifyEmail", { email, name, password, phoneNumber } as any
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: "#7b2cbf", alignItems: "center", justifyContent: "center", padding: 24 },
+  container: { flexGrow: 1, backgroundColor: "#240046", alignItems: "center", justifyContent: "center", padding: 24 },
   title: { fontSize: 32, color: "white", fontWeight: "bold", marginBottom: 32 },
   inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 12, paddingHorizontal: 12, marginBottom: 16, width: "100%" },
   icon: { marginRight: 8 },

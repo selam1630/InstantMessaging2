@@ -51,5 +51,4 @@ const App: React.FC = () => {
     </SocketProvider>
   );
 };
-
 export default App;

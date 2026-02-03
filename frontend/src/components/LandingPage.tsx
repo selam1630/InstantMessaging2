@@ -13,7 +13,7 @@ type Props = {
 };
 const LandingPage: React.FC<Props> = ({ navigation }) => {
   return (
-    <LinearGradient colors={['#3b0066', '#7b2cbf', '#c77dff']} style={styles.container}>
+    <LinearGradient colors={[ '#240046','#3b0066', '#5a189a']} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.contentContainer}>
 

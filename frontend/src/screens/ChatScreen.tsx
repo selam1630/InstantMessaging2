@@ -606,13 +606,13 @@ export default function ChatScreen({ route }: ChatScreenProps) {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: "#7b2cbf" 
+    backgroundColor: "#240046" 
   },
   header: { 
     padding: 16, 
     borderBottomWidth: 1, 
     borderBottomColor: "rgba(255,255,255,0.2)", 
-    backgroundColor: "#7b2cbf" 
+    backgroundColor: "#240046" 
   },
   receiverName: { 
     fontSize: 20, 
@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
   
   // Input container styling
   inputContainer: {
-    backgroundColor: "#7b2cbf",
+    backgroundColor: "#240046",
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.2)",
   },

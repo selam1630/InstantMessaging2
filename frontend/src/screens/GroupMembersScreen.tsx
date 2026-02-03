@@ -122,7 +122,7 @@ const MembersListScreen: React.FC = () => {
 
 // ------------------ STYLES ------------------
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#7b2cbf" },
+  container: { flex: 1, backgroundColor: "#240046" },
   memberRow: { flexDirection: "row", alignItems: "center", padding: 16 },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
   name: { fontSize: 16, fontWeight: "500" },

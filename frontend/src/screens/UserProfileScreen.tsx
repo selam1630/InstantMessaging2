@@ -71,7 +71,7 @@ const UserProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#7b2cbf",
+    backgroundColor: "#240046",
     padding: 20,
   },
   backText: {

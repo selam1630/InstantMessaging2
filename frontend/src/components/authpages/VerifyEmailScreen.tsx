@@ -95,7 +95,7 @@ const { email, name, password, phoneNumber } = route.params;
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: "#7b2cbf", alignItems: "center", justifyContent: "center", padding: 24 },
+  container: { flexGrow: 1, backgroundColor: "#240046", alignItems: "center", justifyContent: "center", padding: 24 },
   title: { fontSize: 32, color: "white", fontWeight: "bold", marginBottom: 16 },
   subtitle: { fontSize: 16, color: "#ddd", marginBottom: 32, textAlign: "center" },
   input: { width: "100%", backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 12, color: "white", paddingVertical: 12, paddingHorizontal: 16, fontSize: 16, marginBottom: 16 },

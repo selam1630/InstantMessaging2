@@ -128,7 +128,7 @@ export default function CreateGroupScreen({ route }: { route: { params: { userId
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#7b2cbf", padding: 16, paddingTop: 40 },
+  container: { flex: 1, backgroundColor: "#240046", padding: 16, paddingTop: 40 },
   title: { color: "#fff", fontSize: 20, fontWeight: "700", marginBottom: 12 },
   input: { backgroundColor: "rgba(255,255,255,0.15)", color: "#fff", padding: 12, borderRadius: 10, marginBottom: 12 },
   sub: { color: "rgba(255,255,255,0.9)", marginBottom: 8, fontWeight: "600" },

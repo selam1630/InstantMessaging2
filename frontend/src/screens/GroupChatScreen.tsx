@@ -516,8 +516,8 @@ const renderMessage = ({ item }: { item: Message }) => {
   );
 }
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#7b2cbf" },
-  header: { padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.2)", backgroundColor: "#7b2cbf" },
+  container: { flex: 1, backgroundColor: "#240046" },
+  header: { padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.2)", backgroundColor: "#240046" },
   receiverName: { fontSize: 20, fontWeight: "bold", color: "#fff" },
   receiverStatus: { fontSize: 14, color: "rgba(255,255,255,0.7)", marginTop: 2 },
   senderName: { fontSize: 12, color: "rgba(255,255,255,0.7)", marginBottom: 2 },
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
   reactionEmoji: { fontSize: 20, lineHeight: 24, marginRight: 6 },
   micButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", marginLeft: 8 },
   micButtonRecording: { backgroundColor: "#ff4b5c" },
-  micIcon: { fontSize: 24, color: "#7b2cbf" },
+  micIcon: { fontSize: 24, color: "##240046" },
   retryButton: { marginLeft: 8, width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center" },
   retryIcon: { fontSize: 18, color: "#7b2cbf" },
   emojiPicker: { position: "absolute", bottom: 70, left: 0, right: 0, height: 250, backgroundColor: "#fff", borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: "hidden" },
@@ -571,7 +571,7 @@ avatar: {
   metaRow: { flexDirection: "row", justifyContent: "flex-end", marginTop: 4 },
   timestamp: { fontSize: 10, color: "rgba(255,255,255,0.6)", marginRight: 6 },
   readReceipt: { fontSize: 10, color: "rgba(255,255,255,0.6)" },
-  inputWrapper: { flexDirection: "row", padding: 10, backgroundColor: "#7b2cbf", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.2)", alignItems: "center" },
+  inputWrapper: { flexDirection: "row", padding: 10, backgroundColor: "#240046", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.2)", alignItems: "center" },
   attachButton: { fontSize: 28, color: "#fff", marginRight: 10 },
   input: { flex: 1, backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", borderRadius: 20, paddingHorizontal: 16, paddingVertical: Platform.OS === "ios" ? 12 : 8, fontSize: 16, marginRight: 8 },
   sendButton: { backgroundColor: "#fff", borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10 },
