@@ -32,6 +32,8 @@ import AudioRecorderPlayer from "react-native-audio-recorder-player";
 import ActionSheet from "react-native-actionsheet";
 import { Image } from "react-native";
 import { Clipboard } from "react-native";
+import { WebView } from 'react-native-webview';
+import { Phone } from "lucide-react-native";
 
 
 dayjs.extend(relativeTime);
@@ -447,10 +449,23 @@ export default function ChatScreen({ route }: ChatScreenProps) {
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.receiverName}>{receiverName}</Text>
-          <Text style={styles.receiverStatus}>{statusText}</Text>
-        </View>
+       <View style={styles.header}>
+  <View>
+    <Text style={styles.receiverName}>{receiverName}</Text>
+    <Text style={styles.receiverStatus}>{statusText}</Text>
+  </View>
+
+  <TouchableOpacity
+    style={styles.videoCallButton}
+    onPress={() => {
+      navigation.navigate("VideoCall", {
+        roomName: `chat_${conversationId}_${userId}_${receiverId}`,
+      });
+    }}
+  ><Phone color="#fff" size={24} />  
+  </TouchableOpacity>
+</View>
+
 
         <FlatList
           ref={flatListRef}
@@ -658,6 +673,22 @@ const styles = StyleSheet.create({
     borderRadius: 16, 
     maxWidth: "80%" 
   },
+ videoCallButton: {
+  backgroundColor: "rgba(255,255,255,0.2)",
+  padding: 8,
+  borderRadius: 30,
+  alignItems: "center",
+  justifyContent: "center",
+  position: "absolute",
+  right: 16,       
+  top: 25,         
+},
+
+videoCallButtonText: {
+  fontSize: 20,
+  color: "#fff",
+},
+
   sent: {
     backgroundColor: "#d6bbff",
     alignSelf: "flex-end",
