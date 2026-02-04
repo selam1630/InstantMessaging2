@@ -29,7 +29,6 @@ export default function CreateGroupScreen({ route }: { route: { params: { userId
     android: "http://localhost:4000",
     default: "http://10.5.209.88:4000",
   });
-
   useEffect(() => {
     const fetchContacts = async () => {
       try {
