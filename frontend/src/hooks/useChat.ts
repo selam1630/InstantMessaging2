@@ -250,7 +250,6 @@ export function useChat(conversationId: string, userId: string) {
       console.error("Error saving message:", err);
     }
   };
-
   /* ============================
      FORWARD MESSAGE
   ============================ */
