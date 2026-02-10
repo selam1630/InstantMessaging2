@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { useSocket } from "../context/SocketContext";
+import { useNavigation } from "@react-navigation/native";
 
 interface MembersListScreenProps {
   route: {
@@ -24,8 +25,9 @@ interface MembersListScreenProps {
 const BACKEND_URL = "http://localhost:4000";
 
 export default function MembersListScreen({ route }: MembersListScreenProps) {
-  const { participantIds, groupName } = route.params;
+  const { participantIds, groupName, userId: currentUserId } = route.params;
   const { onlineUsers } = useSocket();
+  const navigation = useNavigation<any>();
   
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +41,19 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
       const memberDetails = await Promise.all(
         participantIds.map(async (id) => {
           try {
+            // Skip if it's the current user (you can't chat with yourself)
+            if (id === currentUserId) {
+              return {
+                id,
+                name: "You",
+                profileImage: null,
+                email: null,
+                onlineStatus: "online",
+                lastSeen: null,
+                isCurrentUser: true,
+              };
+            }
+
             // Fetch user profile details
             const userResponse = await fetch(`${BACKEND_URL}/api/user/${id}`);
             if (!userResponse.ok) {
@@ -76,6 +91,7 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
               // Use socket data if available, otherwise use API data
               onlineStatus: onlineStatus?.onlineStatus || statusData.onlineStatus,
               lastSeen: onlineStatus?.lastSeen || statusData.lastSeen,
+              isCurrentUser: false,
             };
           } catch (error) {
             console.error(`Error processing user ${id}:`, error);
@@ -104,6 +120,7 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
       email: null,
       onlineStatus: onlineStatus?.onlineStatus || "offline",
       lastSeen: onlineStatus?.lastSeen || null,
+      isCurrentUser: id === currentUserId,
     };
   };
 
@@ -143,15 +160,35 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
     }
   };
 
+  const handleMemberPress = (member: any) => {
+    if (member.isCurrentUser) {
+      // Navigate to own profile
+      navigation.navigate("Profile", { userId: member.id });
+    } else {
+      // Navigate to other user's profile
+      navigation.navigate("UserProfile", { 
+        userId: member.id,
+        currentUserId: currentUserId, // Pass current user ID for chat button
+      });
+    }
+  };
+
   const renderMemberItem = ({ item }: { item: any }) => (
-    <View style={styles.memberItem}>
+    <TouchableOpacity 
+      style={styles.memberItem}
+      onPress={() => handleMemberPress(item)}
+      activeOpacity={0.7}
+    >
       {item.profileImage ? (
         <Image
           source={{ uri: item.profileImage }}
           style={styles.memberAvatar}
         />
       ) : (
-        <View style={styles.memberAvatarFallback}>
+        <View style={[
+          styles.memberAvatarFallback,
+          item.isCurrentUser && styles.currentUserAvatar
+        ]}>
           <Text style={styles.avatarText}>
             {item.name?.charAt(0)?.toUpperCase() || "U"}
           </Text>
@@ -159,7 +196,12 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
       )}
       
       <View style={styles.memberInfo}>
-        <Text style={styles.memberName}>{item.name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.memberName}>{item.name}</Text>
+          {item.isCurrentUser && (
+            <Text style={styles.youBadge}> (You)</Text>
+          )}
+        </View>
         <Text style={[
           styles.memberStatus,
           item.onlineStatus === "online" ? styles.onlineStatus : styles.offlineStatus
@@ -170,7 +212,9 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
           <Text style={styles.memberEmail}>{item.email}</Text>
         )}
       </View>
-    </View>
+      
+      <Text style={styles.chevron}>›</Text>
+    </TouchableOpacity>
   );
 
   if (loading) {
@@ -185,10 +229,18 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.groupName}>{groupName}</Text>
-        <Text style={styles.memberCount}>
-          {members.length} member{members.length !== 1 ? "s" : ""}
-        </Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backText}>‹</Text>
+        </TouchableOpacity>
+        <View style={styles.headerTitle}>
+          <Text style={styles.groupName}>{groupName}</Text>
+          <Text style={styles.memberCount}>
+            {members.length} member{members.length !== 1 ? "s" : ""}
+          </Text>
+        </View>
       </View>
       
       <FlatList
@@ -201,7 +253,7 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
       
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          {members.filter(m => m.onlineStatus === "online").length} online now
+          {members.filter(m => m.onlineStatus === "online" && !m.isCurrentUser).length} online now
         </Text>
       </View>
     </View>
@@ -214,15 +266,28 @@ const styles = StyleSheet.create({
     backgroundColor: "#240046",
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.2)",
   },
+  backButton: {
+    marginRight: 16,
+  },
+  backText: {
+    fontSize: 28,
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  headerTitle: {
+    flex: 1,
+  },
   groupName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#fff",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   memberCount: {
     fontSize: 14,
@@ -263,6 +328,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
+  currentUserAvatar: {
+    backgroundColor: "#3a0ca3",
+  },
   avatarText: {
     fontSize: 20,
     color: "#fff",
@@ -271,11 +339,21 @@ const styles = StyleSheet.create({
   memberInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   memberName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#fff",
     marginBottom: 2,
+  },
+  
+  youBadge: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
+    fontStyle: "italic",
   },
   memberStatus: {
     fontSize: 14,
@@ -289,6 +367,10 @@ const styles = StyleSheet.create({
   },
   memberEmail: {
     fontSize: 12,
+    color: "rgba(255,255,255,0.5)",
+  },
+  chevron: {
+    fontSize: 24,
     color: "rgba(255,255,255,0.5)",
   },
   footer: {
