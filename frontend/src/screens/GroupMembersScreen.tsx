@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { useSocket } from "../context/SocketContext";
 import { useNavigation } from "@react-navigation/native";
-import { useCurrentUser } from "../context/UserContext"; // Import the hook
+import { useCurrentUser } from "../context/UserContext";
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Add this import
 
 interface MembersListScreenProps {
   route: {
@@ -25,7 +26,7 @@ interface MembersListScreenProps {
 const BACKEND_URL = "http://localhost:4000";
 
 export default function MembersListScreen({ route }: MembersListScreenProps) {
-  const { participantIds, groupName } = route.params;
+  const { participantIds, conversationId, groupName } = route.params;
   
   // Use UserContext to get current user ID
   const { currentUserId, isLoading: isUserLoading } = useCurrentUser();
@@ -34,12 +35,36 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
   
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [groupImage, setGroupImage] = useState<string | null>(null);
+  const [groupLoading, setGroupLoading] = useState(true);
 
   useEffect(() => {
     if (!isUserLoading) {
+      fetchGroupDetails();
       fetchMembersDetails();
     }
-  }, [isUserLoading, currentUserId]); // Add dependencies
+  }, [isUserLoading, currentUserId]);
+
+  const fetchGroupDetails = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await fetch(
+        `${BACKEND_URL}/api/conversation/${conversationId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = await res.json();
+      if (data.type === 'group') {
+        setGroupImage(data.groupImage || null);
+      }
+    } catch (err) {
+      console.error('Error fetching group details:', err);
+    } finally {
+      setGroupLoading(false);
+    }
+  };
 
   const fetchMembersDetails = async () => {
     if (!currentUserId) {
@@ -51,7 +76,7 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
       const memberDetails = await Promise.all(
         participantIds.map(async (id) => {
           try {
-            // Skip if it's the current user (you can't chat with yourself)
+            // Skip if it's the current user
             if (id === currentUserId) {
               return {
                 id,
@@ -98,7 +123,6 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
               name: userData.name || "Unknown User",
               profileImage: userData.profileImage,
               email: userData.email,
-              // Use socket data if available, otherwise use API data
               onlineStatus: onlineStatus?.onlineStatus || statusData.onlineStatus,
               lastSeen: onlineStatus?.lastSeen || statusData.lastSeen,
               isCurrentUser: false,
@@ -113,7 +137,6 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
       setMembers(memberDetails);
     } catch (error) {
       console.error("Error fetching members:", error);
-      // Fallback to socket data only
       const fallbackMembers = participantIds.map(id => getFallbackUserData(id));
       setMembers(fallbackMembers);
     } finally {
@@ -174,15 +197,48 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
 
   const handleMemberPress = (member: any) => {
     if (member.isCurrentUser) {
-      // Navigate to own profile
       navigation.navigate("Profile", { userId: member.id });
     } else {
-      // Navigate to other user's profile - NO NEED TO PASS currentUserId
       navigation.navigate("UserProfile", { 
         userId: member.id,
       });
     }
   };
+
+  const handleEditGroupProfile = () => {
+    navigation.navigate("GroupProfile", {
+      conversationId,
+      groupName
+    });
+  };
+
+  const renderGroupProfileHeader = () => (
+    <TouchableOpacity 
+      style={styles.groupProfileSection}
+      onPress={handleEditGroupProfile}
+      activeOpacity={0.7}
+    >
+      <View style={styles.groupAvatarContainer}>
+        {groupImage ? (
+          <Image
+            source={{ uri: groupImage }}
+            style={styles.groupAvatarImage}
+          />
+        ) : (
+          <View style={styles.groupAvatar}>
+            <Text style={styles.groupAvatarText}>
+              {groupName?.[0]?.toUpperCase()}
+            </Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.groupInfo}>
+        <Text style={styles.groupNameHeader}>{groupName}</Text>
+        <Text style={styles.groupAction}>Edit group photo</Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </TouchableOpacity>
+  );
 
   const renderMemberItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
@@ -228,14 +284,16 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
     </TouchableOpacity>
   );
 
-  if (isUserLoading || loading) {
+  if (isUserLoading || loading || groupLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#7b2cbf" />
-        <Text style={styles.loadingText}>Loading members...</Text>
+        <Text style={styles.loadingText}>Loading group info...</Text>
       </View>
     );
   }
+
+  const onlineCount = members.filter(m => m.onlineStatus === "online" && !m.isCurrentUser).length;
 
   return (
     <View style={styles.container}>
@@ -243,6 +301,7 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
@@ -258,13 +317,19 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
         data={members}
         keyExtractor={(item) => item.id}
         renderItem={renderMemberItem}
+        ListHeaderComponent={renderGroupProfileHeader}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No members found</Text>
+          </View>
+        }
       />
       
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          {members.filter(m => m.onlineStatus === "online" && !m.isCurrentUser).length} online now
+          {onlineCount} {onlineCount === 1 ? 'person is' : 'people are'} online now
         </Text>
       </View>
     </View>
@@ -279,30 +344,32 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.2)",
+    borderBottomColor: "#1E293B",
+    backgroundColor: "#240046",
   },
   backButton: {
     marginRight: 16,
   },
   backText: {
     fontSize: 28,
-    color: "#fff",
+    color: "#FFFFFF",
     fontWeight: "bold",
   },
   headerTitle: {
     flex: 1,
   },
   groupName: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FFFFFF",
     marginBottom: 2,
   },
   memberCount: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.7)",
+    color: "#94A3B8",
   },
   loadingContainer: {
     flex: 1,
@@ -311,41 +378,105 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    color: "rgba(255,255,255,0.7)",
-    marginTop: 10,
+    color: "#94A3B8",
+    marginTop: 12,
+    fontSize: 16,
   },
   listContainer: {
     padding: 16,
   },
+  groupProfileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#240046',
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  groupAvatarContainer: {
+    marginRight: 16,
+  },
+  groupAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#7b2cbf',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  groupAvatarImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+  },
+  groupAvatarText: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  groupInfo: {
+    flex: 1,
+  },
+  groupNameHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  groupAction: {
+    fontSize: 14,
+    color: '#94A3B8',
+  },
   memberItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: "#1E293B",
+    backgroundColor: '#1E293B',
+    borderRadius: 10,
+    marginBottom: 8,
   },
   memberAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 14,
+    borderWidth: 2,
+    borderColor: '#334155',
   },
   memberAvatarFallback: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#7b2cbf",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#240046",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: 14,
+    borderWidth: 2,
+    borderColor: '#334155',
   },
   currentUserAvatar: {
     backgroundColor: "#3a0ca3",
+    borderColor: '#6366F1',
   },
   avatarText: {
-    fontSize: 20,
-    color: "#fff",
-    fontWeight: "bold",
+    fontSize: 18,
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
   memberInfo: {
     flex: 1,
@@ -353,45 +484,56 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 4,
   },
   memberName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
-    marginBottom: 2,
+    color: "#FFFFFF",
   },
-  
   youBadge: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
+    color: "#94A3B8",
     fontStyle: "italic",
+    marginLeft: 4,
   },
   memberStatus: {
-    fontSize: 14,
+    fontSize: 13,
     marginBottom: 2,
   },
   onlineStatus: {
     color: "#4CAF50",
   },
   offlineStatus: {
-    color: "rgba(255,255,255,0.6)",
+    color: "#94A3B8",
   },
   memberEmail: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.5)",
+    color: "#64748B",
   },
   chevron: {
     fontSize: 24,
-    color: "rgba(255,255,255,0.5)",
+    color: "#64748B",
+    marginLeft: 8,
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#94A3B8',
+    fontSize: 16,
   },
   footer: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.2)",
+    borderTopColor: "#1E293B",
     alignItems: "center",
+    backgroundColor: '#240046',
   },
   footerText: {
-    color: "rgba(255,255,255,0.7)",
+    color: "#94A3B8",
     fontSize: 14,
+    fontWeight: '500',
   },
 });
