@@ -77,9 +77,16 @@ export default function SignInScreen() {
 
     const userId = data.user.id;
 
-    // 🔥 SAVE LOGIN DATA
+    // 🔥 FIXED: SAVE BOTH 'userId' AND 'user'
     await AsyncStorage.setItem("token", data.token);
     await AsyncStorage.setItem("user", JSON.stringify(data.user));
+    await AsyncStorage.setItem("userId", userId); // ← THIS IS CRITICAL!
+
+    console.log("Saved to AsyncStorage:", { 
+      userId, 
+      token: data.token,
+      user: data.user 
+    });
 
     socket?.emit("user_online", userId);
 

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSocket } from "../context/SocketContext";
 import { useNavigation } from "@react-navigation/native";
+import { useCurrentUser } from "../context/UserContext"; // Import the hook
 
 interface MembersListScreenProps {
   route: {
@@ -17,7 +18,6 @@ interface MembersListScreenProps {
       participantIds: string[];
       conversationId: string;
       groupName: string;
-      userId?: string;
     };
   };
 }
@@ -25,7 +25,10 @@ interface MembersListScreenProps {
 const BACKEND_URL = "http://localhost:4000";
 
 export default function MembersListScreen({ route }: MembersListScreenProps) {
-  const { participantIds, groupName, userId: currentUserId } = route.params;
+  const { participantIds, groupName } = route.params;
+  
+  // Use UserContext to get current user ID
+  const { currentUserId, isLoading: isUserLoading } = useCurrentUser();
   const { onlineUsers } = useSocket();
   const navigation = useNavigation<any>();
   
@@ -33,10 +36,17 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMembersDetails();
-  }, []);
+    if (!isUserLoading) {
+      fetchMembersDetails();
+    }
+  }, [isUserLoading, currentUserId]); // Add dependencies
 
   const fetchMembersDetails = async () => {
+    if (!currentUserId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const memberDetails = await Promise.all(
         participantIds.map(async (id) => {
@@ -113,14 +123,16 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
 
   const getFallbackUserData = (id: string) => {
     const onlineStatus = onlineUsers.find((u) => u.id === id);
+    const isCurrentUser = id === currentUserId;
+    
     return {
       id,
-      name: `User ${id.substring(0, 6)}`,
+      name: isCurrentUser ? "You" : `User ${id.substring(0, 6)}`,
       profileImage: null,
       email: null,
       onlineStatus: onlineStatus?.onlineStatus || "offline",
       lastSeen: onlineStatus?.lastSeen || null,
-      isCurrentUser: id === currentUserId,
+      isCurrentUser,
     };
   };
 
@@ -165,10 +177,9 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
       // Navigate to own profile
       navigation.navigate("Profile", { userId: member.id });
     } else {
-      // Navigate to other user's profile
+      // Navigate to other user's profile - NO NEED TO PASS currentUserId
       navigation.navigate("UserProfile", { 
         userId: member.id,
-        currentUserId: currentUserId, // Pass current user ID for chat button
       });
     }
   };
@@ -217,7 +228,7 @@ export default function MembersListScreen({ route }: MembersListScreenProps) {
     </TouchableOpacity>
   );
 
-  if (loading) {
+  if (isUserLoading || loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#7b2cbf" />

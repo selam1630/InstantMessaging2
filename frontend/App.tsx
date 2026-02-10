@@ -16,6 +16,8 @@ import UserProfileScreen from "./src/screens/UserProfileScreen";
 import MembersListScreen from "./src/screens/GroupMembersScreen";
 import GroupProfileScreen from "./src/screens/GroupProfileScreen";
 import VideoCallScreen from "./src/screens/VideoCallScreen";
+import { UserProvider } from "./src/context/UserContext";
+
 export type RootStackParamList = {
   Landing: undefined;
   SignIn: undefined;
@@ -27,34 +29,36 @@ export type RootStackParamList = {
   CreateGroup: { userId: string };
   Profile: { userId: string };
   UserProfile: { userId: string };
-  MembersList: { userIds: string[] };
+  MembersList: { participantIds: string[]; conversationId: string; groupName: string }; // Updated
   GroupProfile: { conversationId: string; groupName: string }; 
   VideoCall: { roomName: string };
-
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
 const App: React.FC = () => {
   return (
-    <SocketProvider>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Landing" component={LandingPage} />
-          <Stack.Screen name="SignIn" component={SignInScreen} />
-          <Stack.Screen name="SignUp" component={SignUpScreen} />
-          <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
-          <Stack.Screen name="Chat" component={ChatScreen} />
-          <Stack.Screen name="GroupChat" component={GroupChatScreen} />
-          <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
-          <Stack.Screen name="ChatList" component={ChatListScreen} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
-          <Stack.Screen name="UserProfile" component={UserProfileScreen} />
-          <Stack.Screen name="MembersList" component={MembersListScreen} />
-           <Stack.Screen name="GroupProfile" component={GroupProfileScreen} /> 
-           <Stack.Screen name="VideoCall" component={VideoCallScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SocketProvider>
+    <UserProvider>
+      <SocketProvider>
+        <NavigationContainer>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Landing" component={LandingPage} />
+            <Stack.Screen name="SignIn" component={SignInScreen} />
+            <Stack.Screen name="SignUp" component={SignUpScreen} />
+            <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+            <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen name="GroupChat" component={GroupChatScreen} />
+            <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
+            <Stack.Screen name="ChatList" component={ChatListScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+            <Stack.Screen name="MembersList" component={MembersListScreen} />
+            <Stack.Screen name="GroupProfile" component={GroupProfileScreen} /> 
+            <Stack.Screen name="VideoCall" component={VideoCallScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SocketProvider>
+    </UserProvider>
   );
 };
 

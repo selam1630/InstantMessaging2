@@ -1,3 +1,4 @@
+// screens/UserProfileScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -12,12 +13,12 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Phone, MessageCircle } from 'lucide-react-native';
+import { useCurrentUser } from '../context/UserContext'; // Import the hook
 
 interface UserProfileScreenProps {
   route: {
     params: {
       userId: string;
-      currentUserId?: string;
     };
   };
 }
@@ -27,10 +28,10 @@ const BACKEND_URL = "http://localhost:4000";
 const UserProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute();
-  const { userId, currentUserId } = route.params as { 
-    userId: string; 
-    currentUserId?: string 
-  };
+  const { userId } = route.params as { userId: string };
+  
+  // Use the UserContext
+  const { currentUserId, isLoading: isUserLoading } = useCurrentUser();
   
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -38,8 +39,10 @@ const UserProfileScreen: React.FC = () => {
   const [lastSeen, setLastSeen] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
+    if (!isUserLoading) {
+      fetchUserProfile();
+    }
+  }, [isUserLoading]);
 
   const fetchUserProfile = async () => {
     setLoading(true);
@@ -107,12 +110,16 @@ const UserProfileScreen: React.FC = () => {
   };
 
   const handleStartChat = async () => {
-    if (!currentUserId) {
-      Alert.alert('Error', 'Cannot start chat without current user ID');
+    // Get current user ID from context
+    const loggedInUserId = currentUserId;
+    
+    if (!loggedInUserId) {
+      Alert.alert('Error', 'Please log in to start a chat');
       return;
     }
 
-    if (userId === currentUserId) {
+    // Check if trying to chat with yourself
+    if (userId === loggedInUserId) {
       Alert.alert('Cannot chat with yourself');
       return;
     }
@@ -122,7 +129,7 @@ const UserProfileScreen: React.FC = () => {
       
       // Use your existing getOrCreateConversation endpoint
       const response = await fetch(
-        `${BACKEND_URL}/api/conversation/get-or-create?user1=${currentUserId}&user2=${userId}`,
+        `${BACKEND_URL}/api/conversation/get-or-create?user1=${loggedInUserId}&user2=${userId}`,
         {
           method: 'GET',
           headers: {
@@ -138,7 +145,7 @@ const UserProfileScreen: React.FC = () => {
         // Navigate to chat screen
         navigation.navigate('Chat', {
           conversationId: data.conversationId,
-          userId: currentUserId,
+          userId: loggedInUserId, // Use the logged-in user's ID from context
           receiverId: userId,
           receiverName: userData?.name || 'User',
         });
@@ -153,12 +160,15 @@ const UserProfileScreen: React.FC = () => {
   };
 
   const handleVideoCall = () => {
-    if (!currentUserId) {
-      Alert.alert('Error', 'Cannot make call without current user ID');
+    // Get current user ID from context
+    const callerId = currentUserId;
+    
+    if (!callerId) {
+      Alert.alert('Error', 'Cannot make call without user ID');
       return;
     }
 
-    if (userId === currentUserId) {
+    if (userId === callerId) {
       Alert.alert('Cannot call yourself');
       return;
     }
@@ -173,7 +183,7 @@ const UserProfileScreen: React.FC = () => {
           { 
             text: 'Call Anyway', 
             onPress: () => {
-              const roomName = `call_${currentUserId}_${userId}_${Date.now()}`;
+              const roomName = `call_${callerId}_${userId}_${Date.now()}`;
               navigation.navigate('VideoCall', { roomName });
             }
           }
@@ -182,12 +192,11 @@ const UserProfileScreen: React.FC = () => {
       return;
     }
 
-    // Generate room name with timestamp for uniqueness
-    const roomName = `call_${currentUserId}_${userId}_${Date.now()}`;
+    const roomName = `call_${callerId}_${userId}_${Date.now()}`;
     navigation.navigate('VideoCall', { roomName });
   };
 
-  if (loading) {
+  if (isUserLoading || loading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#7b2cbf" />
@@ -286,16 +295,6 @@ const UserProfileScreen: React.FC = () => {
           }
         </Text>
       </View>
-
-      {/* Mutual groups/contacts info - You can expand this later */}
-      {userData?.mutualGroups && userData.mutualGroups.length > 0 && (
-        <View style={styles.mutualSection}>
-          <Text style={styles.sectionTitle}>Mutual Groups</Text>
-          <Text style={styles.mutualCount}>
-            {userData.mutualGroups.length} group(s) in common
-          </Text>
-        </View>
-      )}
     </ScrollView>
   );
 };
@@ -450,23 +449,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     fontSize: 14,
     textAlign: 'center',
-  },
-  mutualSection: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 5,
-  },
-  mutualCount: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
   },
 });
 
