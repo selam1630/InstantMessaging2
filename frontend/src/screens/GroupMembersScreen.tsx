@@ -1,149 +1,304 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
-  Image,
   StyleSheet,
+  TouchableOpacity,
   ActivityIndicator,
-  Alert,
+  Image,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRoute, useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useSocket } from "../context/SocketContext";
 
-import { RootStackParamList } from "../../App";
-
-type MembersListScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  "MembersList"
->;
-
-interface Member {
-  id: string;
-  name: string;
-  profileImage?: string;
-  onlineStatus?: string;
+interface MembersListScreenProps {
+  route: {
+    params: {
+      participantIds: string[];
+      conversationId: string;
+      groupName: string;
+      userId?: string;
+    };
+  };
 }
 
-const MembersListScreen: React.FC = () => {
-  const navigation = useNavigation<MembersListScreenNavigationProp>();
-  const route = useRoute();
+const BACKEND_URL = "http://localhost:4000";
 
-  const { participantIds, conversationId, groupName } = route.params as {
-    participantIds: string[];
-    conversationId: string;
-    groupName: string;
-  };
-
-  const [members, setMembers] = useState<Member[]>([]);
+export default function MembersListScreen({ route }: MembersListScreenProps) {
+  const { participantIds, groupName } = route.params;
+  const { onlineUsers } = useSocket();
+  
+  const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMembers();
+    fetchMembersDetails();
   }, []);
 
-  const fetchMembers = async () => {
+  const fetchMembersDetails = async () => {
     try {
-      if (!participantIds?.length) return;
-
-      const token = await AsyncStorage.getItem("token");
-
-      const res = await fetch("http://localhost:4000/api/members/by-ids", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ userIds: participantIds }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setMembers(data.users);
-      } else {
-        Alert.alert("Error", "Failed to load members");
-      }
-    } catch (err) {
-      console.error("Fetch members error:", err);
-      Alert.alert("Error", "Could not fetch members");
+      const memberDetails = await Promise.all(
+        participantIds.map(async (id) => {
+          try {
+            // Fetch user profile details
+            const userResponse = await fetch(`${BACKEND_URL}/api/user/${id}`);
+            if (!userResponse.ok) {
+              console.error(`Failed to fetch user ${id}: ${userResponse.status}`);
+              return getFallbackUserData(id);
+            }
+            
+            const userData = await userResponse.json();
+            
+            // Find online status from socket context
+            const onlineStatus = onlineUsers.find((u) => u.id === id);
+            
+            // If not found in socket, fetch from API
+            let statusData = { onlineStatus: "offline", lastSeen: null };
+            if (!onlineStatus) {
+              try {
+                const statusResponse = await fetch(`${BACKEND_URL}/api/user/${id}/status`);
+                if (statusResponse.ok) {
+                  const statusResult = await statusResponse.json();
+                  statusData = {
+                    onlineStatus: statusResult.onlineStatus || "offline",
+                    lastSeen: statusResult.lastSeen || null
+                  };
+                }
+              } catch (statusError) {
+                console.error(`Error fetching status for ${id}:`, statusError);
+              }
+            }
+            
+            return {
+              id,
+              name: userData.name || "Unknown User",
+              profileImage: userData.profileImage,
+              email: userData.email,
+              // Use socket data if available, otherwise use API data
+              onlineStatus: onlineStatus?.onlineStatus || statusData.onlineStatus,
+              lastSeen: onlineStatus?.lastSeen || statusData.lastSeen,
+            };
+          } catch (error) {
+            console.error(`Error processing user ${id}:`, error);
+            return getFallbackUserData(id);
+          }
+        })
+      );
+      
+      setMembers(memberDetails);
+    } catch (error) {
+      console.error("Error fetching members:", error);
+      // Fallback to socket data only
+      const fallbackMembers = participantIds.map(id => getFallbackUserData(id));
+      setMembers(fallbackMembers);
     } finally {
       setLoading(false);
     }
   };
 
+  const getFallbackUserData = (id: string) => {
+    const onlineStatus = onlineUsers.find((u) => u.id === id);
+    return {
+      id,
+      name: `User ${id.substring(0, 6)}`,
+      profileImage: null,
+      email: null,
+      onlineStatus: onlineStatus?.onlineStatus || "offline",
+      lastSeen: onlineStatus?.lastSeen || null,
+    };
+  };
+
+  const formatLastSeen = (lastSeen: string | null) => {
+    if (!lastSeen) return "Never";
+    
+    try {
+      const date = new Date(lastSeen);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffMins < 1) return "Just now";
+      if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+      if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: diffDays >= 365 ? "numeric" : undefined,
+      });
+    } catch (error) {
+      return "Unknown";
+    }
+  };
+
+  const getStatusText = (member: any) => {
+    if (member.onlineStatus === "online") {
+      return "🟢 Online";
+    } else if (member.lastSeen) {
+      return `⚫ Last seen ${formatLastSeen(member.lastSeen)}`;
+    } else {
+      return "⚫ Offline";
+    }
+  };
+
+  const renderMemberItem = ({ item }: { item: any }) => (
+    <View style={styles.memberItem}>
+      {item.profileImage ? (
+        <Image
+          source={{ uri: item.profileImage }}
+          style={styles.memberAvatar}
+        />
+      ) : (
+        <View style={styles.memberAvatarFallback}>
+          <Text style={styles.avatarText}>
+            {item.name?.charAt(0)?.toUpperCase() || "U"}
+          </Text>
+        </View>
+      )}
+      
+      <View style={styles.memberInfo}>
+        <Text style={styles.memberName}>{item.name}</Text>
+        <Text style={[
+          styles.memberStatus,
+          item.onlineStatus === "online" ? styles.onlineStatus : styles.offlineStatus
+        ]}>
+          {getStatusText(item)}
+        </Text>
+        {item.email && (
+          <Text style={styles.memberEmail}>{item.email}</Text>
+        )}
+      </View>
+    </View>
+  );
+
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#7b2cbf" />
+        <Text style={styles.loadingText}>Loading members...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Text style={styles.backText}>Back</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() =>
-          navigation.navigate("GroupProfile", {
-            conversationId,
-            groupName,
-          })
-        }
-      >
-        <Text style={styles.backText}>Set photo</Text>
-      </TouchableOpacity>
-
-      {/* Members */}
+      <View style={styles.header}>
+        <Text style={styles.groupName}>{groupName}</Text>
+        <Text style={styles.memberCount}>
+          {members.length} member{members.length !== 1 ? "s" : ""}
+        </Text>
+      </View>
+      
       <FlatList
         data={members}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.memberRow}
-            onPress={() =>
-              navigation.navigate("UserProfile", { userId: item.id })
-            }
-          >
-            <Image
-              source={{
-                uri:
-                  item.profileImage ||
-                  `https://i.pravatar.cc/150?u=${item.id}`,
-              }}
-              style={styles.avatar}
-            />
-            <Text style={styles.name}>{item.name}</Text>
-            <Text
-              style={{
-                color: item.onlineStatus === "online" ? "green" : "gray",
-                marginLeft: 8,
-              }}
-            >
-              ● {item.onlineStatus === "online" ? "Online" : "Offline"}
-            </Text>
-          </TouchableOpacity>
-        )}
-        ItemSeparatorComponent={() => (
-          <View style={{ height: 1, backgroundColor: "#333" }} />
-        )}
+        renderItem={renderMemberItem}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
       />
+      
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>
+          {members.filter(m => m.onlineStatus === "online").length} online now
+        </Text>
+      </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#240046" },
-  memberRow: { flexDirection: "row", alignItems: "center", padding: 16 },
-  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-  name: { fontSize: 16, fontWeight: "500", color: "#fff" },
-  backText: { fontSize: 18, color: "#007bff", marginBottom: 12 },
+  container: {
+    flex: 1,
+    backgroundColor: "#240046",
+  },
+  header: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.2)",
+  },
+  groupName: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  memberCount: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#240046",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "rgba(255,255,255,0.7)",
+    marginTop: 10,
+  },
+  listContainer: {
+    padding: 16,
+  },
+  memberItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  memberAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  memberAvatarFallback: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#7b2cbf",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 20,
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  memberInfo: {
+    flex: 1,
+  },
+  memberName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+    marginBottom: 2,
+  },
+  memberStatus: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  onlineStatus: {
+    color: "#4CAF50",
+  },
+  offlineStatus: {
+    color: "rgba(255,255,255,0.6)",
+  },
+  memberEmail: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.5)",
+  },
+  footer: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+  },
+  footerText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+  },
 });
-
-export default MembersListScreen;
